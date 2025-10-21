@@ -1,0 +1,57 @@
+.nano-editor {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.editor-container {
+  display: flex;
+  height: 400px;
+}
+
+.line-numbers {
+  background-color: #f5f5f5;
+  border-right: 1px solid #ddd;
+  padding: 10px 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: #666;
+  user-select: none;
+  min-width: 40px;
+  text-align: right;
+}
+
+.line-number {
+  height: 20px;
+  white-space: nowrap;
+}
+
+.editor {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  resize: none;
+  background-color: white;
+  color: #333;
+}
+
+.editor:focus {
+  background-color: #fafafa;
+}
+
+.status-bar {
+  background-color: #f5f5f5;
+  border-top: 1px solid #ddd;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+}
