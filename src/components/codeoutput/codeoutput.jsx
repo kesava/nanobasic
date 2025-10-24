@@ -4,9 +4,10 @@ import { JsonView, allExpanded, defaultStyles, collapseAllNested } from 'react-j
 import 'react-json-view-lite/dist/index.css';
 
 const CodeOutput = ({
-    output = 'output will be shown here.',
+    output,
     tokens,
     ast,
+    env,
 }) => {
     return (
         <>
@@ -16,6 +17,8 @@ const CodeOutput = ({
             ></div>
 
             <div className="debug-section">
+                <h3>Environment:</h3>
+                {env && <JsonView data={env} shouldExpandNode={allExpanded} style={defaultStyles} />}
                 <h3>AST:</h3>
                 {ast && <JsonView data={ast} shouldExpandNode={allExpanded} style={defaultStyles} />}
                 <h3>Tokens:</h3>

@@ -19,6 +19,7 @@ function App() {
         errors: [] as TokenError[]
     });
     const [ast, setAst] = useState<AST | null>(null);
+    const [env, setEnv] = useState<any>(null);
 
     const handleCodeChange = (newCode: string) => {
         console.log("Code changed:", newCode);
@@ -37,7 +38,9 @@ function App() {
             return;
         }
 
-        setOutput(interpreter(astResult));
+        const { output, env } = interpreter(astResult);
+        setOutput(output);
+        setEnv(env.vars);
     };
 
     return (
@@ -55,6 +58,7 @@ function App() {
                         output={output}
                         tokens={tokens}
                         ast={ast || undefined}
+                        env={env}
                     />
                 </div>
             </main>

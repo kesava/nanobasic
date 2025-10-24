@@ -1,6 +1,6 @@
 import { AST } from "./ast";
 
-export default function interpreter(ast: AST): string {
+export default function interpreter(ast: AST): any {
     const { body } = ast;
     let output = '';
     let env = {} as any;
@@ -51,12 +51,17 @@ export default function interpreter(ast: AST): string {
                     break;
                 case 'END':
                     output += `END statement encountered. Terminating execution.<br/>\n`;
-                    return output;
+                    break;
                 default:
                     output += `Unsupported statement type: ${stmt.type}<br/>\n`;
             }
 
+
         }
     }
-    return output;
+    console.log({ output, env });
+    return {
+        output,
+        env
+    } as any;
 }
