@@ -23,6 +23,7 @@ export enum AstNodeType {
     PRINT_STATEMENT = "PRINT_STATEMENT",
     ASSIGNMENT_STATEMENT = "ASSIGNMENT_STATEMENT",
     LINE_NUMBER = "LINE_NUMBER",
+    GOTO_STATEMENT = "GOTO_STATEMENT",
     END = "END",
 }
 
@@ -142,6 +143,15 @@ export class NumberNode implements AstNode {
 
     constructor(value: number) {
         this.value = value;
+    }
+}
+
+export class GotoNode implements AstNode {
+    type = AstNodeType.GOTO_STATEMENT;
+    targetLine: number;
+
+    constructor(targetLine: number) {
+        this.targetLine = targetLine;
     }
 }
 

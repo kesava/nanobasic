@@ -10,9 +10,10 @@ import { AST } from './interpreter/ast';
 
 function App() {
     const initCode = `10 PRINT "HELLO, WORLD!"
-20 LET $A = 5
-30 PRINT "YOU ENTERED: "; $A
-40 END`;
+20 LET $A = 5 + 4
+30 IF 8 < $A THEN LET $A = 23 ELSE LET $A = $A + 11
+40 PRINT "RESULT $A: "; $A
+50 END  `;
     const [output, setOutput] = useState<string>('');
     const [tokens, setTokens] = useState<LexerOutput>({
         tokens: [] as Token[][],

@@ -11,7 +11,8 @@ import {
     NumberNode,
     LiteralNode,
     BinaryExpressionNode,
-    EndNode
+    EndNode,
+    GotoNode
 } from './ast';
 const parser = (tokenList: { tokens: Token[][]; errors: TokenError[] }) => {
     const ast = new AST();
@@ -73,6 +74,27 @@ const parseStatementBody = (tokens: Token[], lineNumber: number): AstNode[] => {
                 break;
             }
             case 'IF': {
+                const ifNode = parseIf(tokens, position, lineNumber);
+                if (ifNode) {
+                    nodes.push(ifNode.node);
+                    position = ifNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'GOTO': {
+                const gotoNode = parseGoto(tokens, position, lineNumber);
+                if (gotoNode) {
+                    nodes.push(gotoNode.node);
+                    position = gotoNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'IF_STATEMENT': {
+                // Parse IF statement
                 const ifNode = parseIf(tokens, position, lineNumber);
                 if (ifNode) {
                     nodes.push(ifNode.node);
@@ -262,3 +284,16 @@ const parseExpression = (tokens: Token[], lineNumber: number): AstNode | null =>
     console.error(`Syntax Error: Invalid expression at line ${lineNumber}.`);
     return null;
 };
+
+const parseGoto = (tokens: Token[], position: number, lineNumber: number): { node: GotoNode; newPosition: number } | null => {
+    // Expected format: GOTO <line_number>
+    if (tokens[position].type === 'GOTO' &&
+        tokens[position + 1] &&
+        tokens[position + 1].type === 'NUMBER') {
+        const lineNum = parseInt(tokens[position + 1].value);
+        const gotoNode = new GotoNode(lineNum); // You may want to create a specific GotoNode class
+        return { node: gotoNode, newPosition: position + 2 };
+    }
+    console.error(`Syntax Error: Invalid GOTO statement at line ${lineNumber}.`);
+    return null;
+}
