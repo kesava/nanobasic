@@ -12,8 +12,20 @@ export  class Token {
     }
 }
 
-export interface TokenError {
+export class TokenError {
+    message: string;
     line: number;
     column: number;
     char: string;
+
+    constructor(message: string, line: number, column: number, char: string) {
+        this.message = message;
+        this.line = line;
+        this.column = column;
+        this.char = char;
+    }
+}
+export interface LexerOutput {
+    tokens: Token[][];
+    errors: TokenError[]
 }

@@ -1,78 +1,264 @@
 import { Token, TokenError } from './Token';
-
-export default function parser(input: string): { tokens: Token[][]; errors: TokenError[] } {
-    const lines = input.split('\n');
-    const outputTokens: Token[][] = [];
-    const unknownCharacters: TokenError[] = [];
-    console.log("Parsing input:", input);
-    const lineNumberRegex = {
-        regex: /^\s*(\d+)\s*/, type: 'LINE_NUMBER'
-    };
-    const tokenRegex = [
-        { type: 'STRING', regex: /^"([^"]*)"/ },
-        { type : 'VARIABLE', regex: /^\$([a-zA-Z_]\w*)/ },
-        { type: 'NUMBER', regex: /^\d+/ },
-
-        { type: 'LET', regex: /^LET\b/ },
-        { type: 'PRINT', regex: /^PRINT\b/ },
-        { type: 'IF', regex: /^IF\b/ },
-        { type: 'ELSE', regex: /^ELSE\b/ },
-        { type: 'INPUT', regex: /^INPUT\b/ },
-        { type: 'THEN', regex: /^THEN\b/ },
-        { type: 'GOTO', regex: /^GOTO\b/ },
-        { type: 'END', regex: /^END\b/ },
-        { type: 'IDENTIFIER', regex: /^[a-zA-Z_]\w*/ },
-        { type: 'OPERATOR', regex: /^[+\-*/=<>]/ },
-        { type: 'WHITESPACE', regex: /^\s+/ },
-        { type: 'NEWLINE', regex: /^\n/ },
-        { type: 'UNKNOWN', regex: /^./ },
-    ];
-
-    lines.forEach((line, lineNumber) => {
-        let position = 0;
-        const lineTokens: Token[] = [];
-
-        // Check for line number at the start of the line
-        const lineNumberMatch = line.match(lineNumberRegex.regex);
-        if (lineNumberMatch) {
-            const value = lineNumberMatch[1];
-            lineTokens.push(new Token(lineNumberRegex.type, value, lineNumber + 1, position + 1));
-            position += lineNumberMatch[0].length;
+import {
+    AST,
+    AstNode, LineNumberNode,
+    AssignmentStatementNode,
+    PrintStatementNode,
+    InputStatementNode,
+    StatementNode,
+    IfStatementNode,
+    VariableNode,
+    NumberNode,
+    LiteralNode,
+    BinaryExpressionNode,
+    EndNode
+} from './ast';
+const parser = (tokenList: { tokens: Token[][]; errors: TokenError[] }) => {
+    const ast = new AST();
+    const lines = tokenList.tokens;
+    lines.forEach((lineTokens, index) => {
+        const firstToken = lineTokens[0];
+        if (firstToken && firstToken.type === 'LINE_NUMBER') {
+            const statement = new StatementNode(new LineNumberNode(parseInt(firstToken.value)));
+            // rest of the tokens
+            const bodyNodes = parseStatementBody(lineTokens.slice(1), index + 1);
+            statement.children.push(...bodyNodes);
+            ast.body.push(statement);
+        } else {
+            // Handle error: line does not start with a line number
+            console.error(`Syntax Error: Line ${index + 1} does not start with a line number.`);
+            ast.errors.push(new TokenError('Expected line number at the beginning of the line.', index + 1, 1, ''));
         }
+    });
+    return ast;
+};
 
-        while (position < line.length) {
-            let matched = false;
+export default parser;
 
-            for (const { type, regex } of tokenRegex) {
-                const substring = line.slice(position);
-                const match = substring.match(regex);
+const parseStatementBody = (tokens: Token[], lineNumber: number): AstNode[] => {
+    const nodes: AstNode[] = [];
+    let position = 0;
+    while (position < tokens.length) {
+        const token = tokens[position];
+        switch (token.type) {
+            case 'LET': {
+                // Parse assignment statement
+                const assignmentNode = parseAssignment(tokens, position, lineNumber);
+                if (assignmentNode) {
+                    nodes.push(assignmentNode.node);
+                    position = assignmentNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'PRINT': {
+                const printNode = parsePrint(tokens, position, lineNumber);
+                if (printNode) {
+                    nodes.push(printNode.node);
+                    position = printNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'INPUT': {
+                const inputNode = parseInput(tokens, position, lineNumber);
+                if (inputNode) {
+                    nodes.push(inputNode.node);
+                    position = inputNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'IF': {
+                const ifNode = parseIf(tokens, position, lineNumber);
+                if (ifNode) {
+                    nodes.push(ifNode.node);
+                    position = ifNode.newPosition;
+                } else {
+                    position++;
+                }
+                break;
+            }
+            case 'END': {
+                nodes.push(new EndNode());
+                position++;
+                break;
+            }
+            default:
+                console.error(`Syntax Error: Unexpected token '${token.value}' at line ${lineNumber}, column ${token.column}.`);
+                position++;
+                break;
+        }
+    }
+    return nodes;
+};
 
-                if (match) {
-                    const value = match[0];
-                    if (type !== 'WHITESPACE') { // Ignore whitespace tokens
-                        if (type === 'VARIABLE') {
-                            // For variables, use the captured group (variable name without $)
-                            const variableName = match[1];
-                            lineTokens.push(new Token(type, variableName, lineNumber + 1, position + 1));
-                        } else {
-                            lineTokens.push(new Token(type, value, lineNumber + 1, position + 1));
-                        }
-                    }
-                    position += value.length;
-                    matched = true;
-                    break;
+const parseAssignment = (tokens: Token[], position: number, lineNumber: number): { node: AssignmentStatementNode; newPosition: number } | null => {
+    // Expected format: LET <variable> = <expression>
+    if (tokens[position].type === 'LET' &&
+        tokens[position + 1] &&
+        tokens[position + 1].type === 'VARIABLE' &&
+        tokens[position + 2] &&
+        tokens[position + 2].type === 'OPERATOR' &&
+        tokens[position + 2].value === '=') {
+        const variableName = tokens[position + 1].value;
+        const exprTokens = [];
+        let exprPosition = position + 3;
+        while (exprPosition < tokens.length) {
+            exprTokens.push(tokens[exprPosition]);
+            exprPosition++;
+        }
+        const exprNode = parseExpression(exprTokens, lineNumber);
+        if (exprNode) {
+            const assignmentNode = new AssignmentStatementNode(new VariableNode(variableName), exprNode);
+            return { node: assignmentNode, newPosition: exprPosition };
+        }
+    }
+    console.error(`Syntax Error: Invalid assignment statement at line ${lineNumber}.`);
+    return null;
+};
+
+const parsePrint = (tokens: Token[], position: number, lineNumber: number): { node: PrintStatementNode; newPosition: number } | null => {
+    // Expected format: PRINT <expression>
+    if (tokens[position].type === 'PRINT') {
+        const printTokens = [];
+        let exprPosition = position + 1;
+        while (exprPosition < tokens.length) {
+            printTokens.push(tokens[exprPosition]);
+            exprPosition++;
+        }
+        const printChildren: AstNode[] = [];
+        printTokens.forEach(token => {
+            if (token.type === 'SEMICOLON') {
+                // Ignore semicolons in PRINT statements for now
+            } else {
+                switch (token.type) {
+                    case 'LITERAL':
+                        printChildren.push(new LiteralNode(token.value));
+                        break;
+                    case 'VARIABLE':
+                        printChildren.push(new VariableNode(token.value));
+                        break;
+                    case 'NUMBER':
+                        printChildren.push(new NumberNode(parseFloat(token.value)));
+                        break;
+                    default:
+                        console.error(`Syntax Error: Invalid token in PRINT statement at line ${lineNumber}, column ${token.column}.`);
+                        break;
                 }
             }
-
-            if (!matched) {
-                position++; // Skip unknown character
-                unknownCharacters.push({ line: lineNumber + 1, column: position, char: line[position - 1] });
-            }
+        });
+        if (printChildren.length > 0) {
+            const printNode = new PrintStatementNode(printChildren);
+            return { node: printNode, newPosition: exprPosition };
+        } else {
+            console.error(`Syntax Error: No valid expressions in PRINT statement at line ${lineNumber}.`);
+            return null;
         }
-        outputTokens.push(lineTokens);
-    });
-    return ({
-        tokens: outputTokens,
-        errors: unknownCharacters
-    });
-}
+    }
+    console.error(`Syntax Error: Invalid PRINT statement at line ${lineNumber}.`);
+    return null;
+};
+
+const parseInput = (tokens: Token[], position: number, lineNumber: number): { node: InputStatementNode; newPosition: number } | null => {
+    // Expected format: INPUT <variable>
+    if (tokens[position].type === 'INPUT' &&
+        tokens[position + 1] &&
+        tokens[position + 1].type === 'VARIABLE') {
+        const variableName = tokens[position + 1].value;
+        const inputNode = new InputStatementNode(new VariableNode(variableName));
+        return { node: inputNode, newPosition: position + 2 };
+    }
+    console.error(`Syntax Error: Invalid INPUT statement at line ${lineNumber}.`);
+    return null;
+};
+
+const parseIf = (tokens: Token[], position: number, lineNumber: number): { node: IfStatementNode; newPosition: number } | null => {
+    // Expected format: IF <condition> THEN <statements> [ELSE <statements>]
+    // This is a simplified version and may need enhancements for complex conditions and statements
+    if (tokens[position].type === 'IF') {
+        let condTokens = [];
+        let thenTokens = [];
+        let elseTokens = [];
+        let currentPosition = position + 1;
+        let inThen = false;
+        let inElse = false;
+
+        while (currentPosition < tokens.length) {
+            const token = tokens[currentPosition];
+            if (token.type === 'THEN') {
+                inThen = true;
+                currentPosition++;
+                continue;
+            } else if (token.type === 'ELSE') {
+                inElse = true;
+                inThen = false;
+                currentPosition++;
+                continue;
+            }
+
+            if (!inThen && !inElse) {
+                condTokens.push(token);
+            } else if (inThen) {
+                thenTokens.push(token);
+            } else if (inElse) {
+                elseTokens.push(token);
+            }
+            currentPosition++;
+        }
+
+        const conditionNode = parseExpression(condTokens, lineNumber);
+        const thenNodes = parseStatementBody(thenTokens, lineNumber);
+        const elseNodes = elseTokens.length > 0 ? parseStatementBody(elseTokens, lineNumber) : undefined;
+
+        if (conditionNode) {
+            const ifNode = new IfStatementNode(conditionNode, thenNodes, elseNodes);
+            return { node: ifNode, newPosition: currentPosition };
+        }
+    }
+    console.error(`Syntax Error: Invalid IF statement at line ${lineNumber}.`);
+    return null;
+};
+
+const parseExpression = (tokens: Token[], lineNumber: number): AstNode | null => {
+    // This is a very simplified expression parser that only handles single variables or numbers
+    if (tokens.length === 1) {
+        const token = tokens[0];
+        if (token.type === 'NUMBER') {
+            return new NumberNode(parseFloat(token.value));
+        } else if (token.type === 'VARIABLE') {
+            return new VariableNode(token.value);
+        } else if (token.type === 'LITERAL') {
+            return new LiteralNode(token.value);
+        }
+    } else if (tokens.length === 3) {
+        // Simple binary expression: <operand> <operator> <operand>
+        const leftToken = tokens[0];
+        const operatorToken = tokens[1];
+        const rightToken = tokens[2];
+
+        let leftNode: AstNode | null = null;
+        let rightNode: AstNode | null = null;
+
+        if (leftToken.type === 'NUMBER') {
+            leftNode = new NumberNode(parseFloat(leftToken.value));
+        } else if (leftToken.type === 'VARIABLE') {
+            leftNode = new VariableNode(leftToken.value);
+        }
+
+        if (rightToken.type === 'NUMBER') {
+            rightNode = new NumberNode(parseFloat(rightToken.value));
+        } else if (rightToken.type === 'VARIABLE') {
+            rightNode = new VariableNode(rightToken.value);
+        }
+
+        if (leftNode && rightNode) {
+            return new BinaryExpressionNode(operatorToken.value, leftNode, rightNode);
+        }
+    }
+    console.error(`Syntax Error: Invalid expression at line ${lineNumber}.`);
+    return null;
+};
