@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import NanoEditor from './components/nanoeditor/nanoeditor';
 import CodeOutput from './components/codeoutput/codeoutput';
@@ -43,6 +43,11 @@ function App() {
         setOutput(output);
         setEnv(env.vars);
     };
+
+    useEffect(() => {
+        handleCodeChange(initCode);
+    }, [initCode]);
+
 
     return (
         <div className="App">
