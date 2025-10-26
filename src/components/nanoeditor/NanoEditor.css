@@ -53,5 +53,17 @@
   padding: 5px 10px;
   font-size: 12px;
   color: #666;
-  text-align: right;
+  .right {
+    float: right;
+    text-align: right;
+  }
+  .left {
+    float: left;
+    text-align: left;
+    button {
+      margin-left: 5px;
+      border: none;
+        background: none;
+    }
+  }
 }

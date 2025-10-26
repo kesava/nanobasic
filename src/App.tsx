@@ -7,6 +7,7 @@ import parser from './interpreter/parser';
 import interpreter from './interpreter/interpreter';
 import { LexerOutput, TokenError, Token } from './interpreter/Token';
 import { AST } from './interpreter/ast';
+import { dbg } from './interpreter/Debugger';
 
 function App() {
     const initCode = `10 PRINT "HELLO, WORLD!"
@@ -39,7 +40,7 @@ function App() {
             return;
         }
 
-        const { output, env } = interpreter(astResult);
+        const { output, env } = interpreter(astResult, dbg);
         setOutput(output);
         setEnv(env.vars);
     };
