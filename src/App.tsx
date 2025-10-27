@@ -23,8 +23,13 @@ function App() {
     const [ast, setAst] = useState<AST | null>(null);
     const [env, setEnv] = useState<any>(null);
 
-    const handleCodeChange = (newCode: string) => {
-        console.log("Code changed:", newCode);
+    const handleCodeRun = async (newCode: string) => {
+        console.log("Code run:", newCode);
+
+        // Clear output immediately when code runs
+        setOutput('');
+        setEnv(null);
+
         const lexResult = lexer(newCode);
         setTokens(lexResult);
         if (lexResult.errors.length > 0) {
@@ -40,14 +45,35 @@ function App() {
             return;
         }
 
-        const { output, env } = interpreter(astResult, dbg);
+        const { output, env } = await interpreter(astResult, dbg);
         setOutput(output);
         setEnv(env.vars);
     };
 
+
+    // Set up continue callback for debugger
     useEffect(() => {
-        handleCodeChange(initCode);
-    }, [initCode]);
+        const continueExecution = async () => {
+            if (ast) {
+                const { output, env } = await interpreter(ast, dbg);
+                setOutput(output);
+                setEnv(env.vars);
+            }
+        };
+
+        const stepExecution = async () => {
+            if (ast) {
+                // Step execution should only execute one line at a time
+                // The interpreter function will handle step mode appropriately
+                const { output, env } = await interpreter(ast, dbg);
+                setOutput(output);
+                setEnv(env.vars);
+            }
+        };
+
+        dbg.setOnContinueCallback(continueExecution);
+        dbg.setOnStepCallback(stepExecution);
+    }, [ast]); // Re-setup when AST changes
 
 
     return (
@@ -58,7 +84,7 @@ function App() {
             </header>
             <main className="app-main">
                 <div className="editor-section">
-                    <NanoEditor initialCode={initCode} onChange={handleCodeChange} />
+                    <NanoEditor initialCode={initCode} onRun={handleCodeRun} />
                 </div>
                 <div className="output-section">
                     <CodeOutput

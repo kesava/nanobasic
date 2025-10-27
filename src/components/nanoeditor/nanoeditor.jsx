@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './NanoEditor.css';
+import { dbg } from '../../interpreter/Debugger';
 
-const NanoEditor = ({ initialCode = '', onChange, currentLine = 10 }) => {
+const NanoEditor = ({ initialCode = '', onRun, currentLine = 10 }) => {
     const [code, setCode] = useState(initialCode);
     const [cursorPosition, setCursorPosition] = useState({ line: 1, col: 1 });
+    const [breakpoints, setBreakpoints] = useState(new Set());
     const textareaRef = useRef(null);
 
     useEffect(() => {
@@ -24,11 +26,6 @@ const NanoEditor = ({ initialCode = '', onChange, currentLine = 10 }) => {
         const newCode = joinWithoutLineNumbers(splitAndStripLineNumbers(upperCode));
         setCode(newCode);
 
-        // Call the parent's onChange handler
-        if (onChange) {
-            onChange(joinAndPutLineNumbers(newCode));
-        }
-
         // Restore cursor position after state update
         setTimeout(() => {
             if (textareaRef.current) {
@@ -37,6 +34,13 @@ const NanoEditor = ({ initialCode = '', onChange, currentLine = 10 }) => {
         }, 0);
 
         handleCursorChange(e);
+    };
+
+    const handleRunClick = () => {
+        if (onRun) {
+            const codeWithLineNumbers = joinAndPutLineNumbers(code);
+            onRun(codeWithLineNumbers);
+        }
     };
 
     const handleCursorChange = (e) => {
@@ -51,15 +55,48 @@ const NanoEditor = ({ initialCode = '', onChange, currentLine = 10 }) => {
         setCursorPosition({ line, col });
     };
 
+    const toggleBreakpoint = (lineNumber) => {
+        const newBreakpoints = new Set(breakpoints);
+        // Convert BASIC line number (10,20,30) to sequential file line (1,2,3)
+        const fileLineNumber = lineNumber / 10;
+
+        if (newBreakpoints.has(lineNumber)) {
+            newBreakpoints.delete(lineNumber);
+            // Remove breakpoint using sequential file line number for AST
+            dbg.removeBreakpoint({
+                start: { line: fileLineNumber, column: 1 },
+                end: { line: fileLineNumber, column: 1 }
+            });
+        } else {
+            newBreakpoints.add(lineNumber);
+            // Add breakpoint using sequential file line number for AST
+            dbg.addBreakpoint({
+                start: { line: fileLineNumber, column: 1 },
+                end: { line: fileLineNumber, column: 1 }
+            });
+        }
+        setBreakpoints(newBreakpoints);
+    };
+
     return (
         <div className="nano-editor">
             <div className="editor-container">
                 <div className="line-numbers">
-                    {lines.map((_, index) => (
-                        <div key={index} className="line-number">
-                            {(index + 1) * 10}
-                        </div>
-                    ))}
+                    {lines.map((_, index) => {
+                        const lineNumber = (index + 1) * 10;
+                        const hasBreakpoint = breakpoints.has(lineNumber);
+                        return (
+                            <div
+                                key={index}
+                                className={`line-number ${hasBreakpoint ? 'breakpoint' : ''}`}
+                                onClick={() => toggleBreakpoint(lineNumber)}
+                                title={hasBreakpoint ? 'Click to remove breakpoint' : 'Click to add breakpoint'}
+                            >
+                                {hasBreakpoint && <span className="breakpoint-dot">●</span>}
+                                {lineNumber}
+                            </div>
+                        );
+                    })}
                 </div>
                 <textarea
                     ref={textareaRef}
@@ -74,7 +111,11 @@ const NanoEditor = ({ initialCode = '', onChange, currentLine = 10 }) => {
                 />
             </div>
             <div className="status-bar">
-                &nbsp;<span className="left"><Debugger currentLine={currentLine} /></span>
+                <span className="left">
+                    <button className="run-button" onClick={handleRunClick}>
+                        ▶️ Run
+                    </button>
+                </span>
                 <span className="right">Ln {cursorPosition.line}, Col {cursorPosition.col}</span>
             </div>
         </div>
@@ -93,25 +134,3 @@ const putLineNUmber = (line, number) => {
 const splitAndStripLineNumbers = (code) => code.split('\n').map(stripLineNumber);
 const joinAndPutLineNumbers = code => code.split('\n').map((line, index) => putLineNUmber(line, (index + 1) * 10)).join('\n');
 const joinWithoutLineNumbers = code => code.join('\n');
-
-// with current line indicator, play and pause buttons
-const Debugger = ({ currentLine, playAction }) => {
-    // use this to manage playing state
-    const [playing, setPlaying] = useState(false);
-    const handlePlay = () => {
-        setPlaying(true);
-        if (playAction) {
-            playAction();
-        }
-    };
-    const stopPlay = () => {
-        setPlaying(false);
-    };
-    return (
-        <div className="debugger">
-            <span>Current Line: {currentLine}</span>
-            <button onClick={handlePlay} disabled={playing}>▶️</button>
-            <button onClick={stopPlay} disabled={!playing}>⏸️</button>
-        </div>
-    );
-}
