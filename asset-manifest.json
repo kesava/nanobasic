@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/nanobasic/static/css/main.c796b626.css",
-    "main.js": "/nanobasic/static/js/main.1a4de427.js",
+    "main.css": "/nanobasic/static/css/main.d48d9946.css",
+    "main.js": "/nanobasic/static/js/main.58377f37.js",
     "index.html": "/nanobasic/index.html",
-    "main.c796b626.css.map": "/nanobasic/static/css/main.c796b626.css.map",
-    "main.1a4de427.js.map": "/nanobasic/static/js/main.1a4de427.js.map"
+    "main.d48d9946.css.map": "/nanobasic/static/css/main.d48d9946.css.map",
+    "main.58377f37.js.map": "/nanobasic/static/js/main.58377f37.js.map"
   },
   "entrypoints": [
-    "static/css/main.c796b626.css",
-    "static/js/main.1a4de427.js"
+    "static/css/main.d48d9946.css",
+    "static/js/main.58377f37.js"
   ]
 }
