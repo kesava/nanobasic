@@ -187,30 +187,39 @@
 @media (max-width: 768px) {
   .nano-editor {
     border-radius: 4px;
+    height: auto;
+    max-height: 80vh;
+  }
+
+  .editor-container {
+    max-height: calc(80vh - 41px); /* Subtract status bar height */
   }
 
   .line-numbers {
-    min-width: 50px;
+    min-width: 40px;
     padding: 8px 4px;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .editor {
     padding: 8px 12px;
     font-size: 13px;
-    height: 500px; /* Maintain fixed height on mobile */
-    min-height: 500px;
-    max-height: 500px;
   }
 
   .status-bar {
     padding: 6px 12px;
     font-size: 12px;
+    flex-shrink: 0;
   }
 
   .run-button {
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .status-bar .right {
+    font-size: 11px;
   }
 }
 
