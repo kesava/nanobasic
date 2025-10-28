@@ -143,8 +143,8 @@ function App() {
     return (
         <div className="App">
             <header className="app-header">
-                <h1>NanoBasic v0.1</h1>
-                <p>Your minimalistic BASIC interpreter with integrated debugger.</p>
+                <h1>NanoBasic v0.7</h1>
+                <p>A minimalistic BASIC interpreter with an integrated debugger.</p>
                 <div style={{ marginTop: '10px' }}>
                     <span style={{ fontSize: '12px', color: '#666' }}>
                         Status: {debuggerState.status} | Mode: {debuggerState.mode}
