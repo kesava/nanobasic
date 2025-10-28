@@ -5,15 +5,15 @@ import type { DebuggerEvent } from './DebuggerEvents';
 import { DebuggerStateManager, DebuggerState, StepMode, PauseReason } from './DebuggerStateManager';
 import type { ExecutionContext, StateTransition } from './DebuggerStateManager';
 
-// Legacy step mode constants for backward compatibility
-const LegacyStepMode = {
+// String-based step mode constants for external API
+const StepModeString = {
     RUN: "run",
     IN: "in",
     OVER: "over",
     OUT: "out"
 } as const;
 
-type LegacyStepModeType = typeof LegacyStepMode[keyof typeof LegacyStepMode];
+type StepModeStringType = typeof StepModeString[keyof typeof StepModeString];
 
 interface DebuggerContext {
     node: {
@@ -347,16 +347,16 @@ class Debugger {
     }
 
     /**
-     * Get current step mode (for backward compatibility)
+     * Get current step mode as string (external API)
      */
-    get currentStepMode(): LegacyStepModeType {
+    get currentStepMode(): StepModeStringType {
         const stepMode = this.stateManager.getStepMode();
         switch (stepMode) {
-            case StepMode.RUN: return LegacyStepMode.RUN;
-            case StepMode.INTO: return LegacyStepMode.IN;
-            case StepMode.OVER: return LegacyStepMode.OVER;
-            case StepMode.OUT: return LegacyStepMode.OUT;
-            default: return LegacyStepMode.RUN;
+            case StepMode.RUN: return StepModeString.RUN;
+            case StepMode.INTO: return StepModeString.IN;
+            case StepMode.OVER: return StepModeString.OVER;
+            case StepMode.OUT: return StepModeString.OUT;
+            default: return StepModeString.RUN;
         }
     }
 
@@ -554,15 +554,15 @@ class Debugger {
     }
 }
 
-export { 
-    Debugger, 
-    Frame, 
-    LegacyStepMode as StepMode, 
-    BreakpointManager, 
+export {
+    Debugger,
+    Frame,
+    StepModeString as StepMode,
+    BreakpointManager,
     DebuggerEventEmitter,
     DebuggerStateManager,
     DebuggerState,
-    StepMode as NewStepMode,
+    StepMode as InternalStepMode,
     PauseReason
 };
 export type { 
