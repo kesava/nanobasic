@@ -18,7 +18,6 @@ const CodeOutput = ({
                 className="code-output"
                 dangerouslySetInnerHTML={{ __html: output }}
             ></div>
-            <div id='debugger-panel'></div>
             {showAst && (
                 <div className="debug-section">
                     <h3>Environment:</h3>

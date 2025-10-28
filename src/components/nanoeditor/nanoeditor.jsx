@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import './NanoEditor.css';
 import { dbg } from '../../interpreter/Debugger';
 
-const NanoEditor = ({ initialCode = '', onRun, currentLine = 10 }) => {
+const NanoEditor = forwardRef(({ initialCode = '', onRun, currentLine = 10 }, ref) => {
     const [code, setCode] = useState(initialCode);
     const [cursorPosition, setCursorPosition] = useState({ line: 1, col: 1 });
     const [breakpoints, setBreakpoints] = useState(new Set());
@@ -78,6 +78,13 @@ const NanoEditor = ({ initialCode = '', onRun, currentLine = 10 }) => {
         setBreakpoints(newBreakpoints);
     };
 
+    // Expose clearBreakpoints method via ref
+    useImperativeHandle(ref, () => ({
+        clearBreakpoints: () => {
+            setBreakpoints(new Set());
+        }
+    }));
+
     return (
         <div className="nano-editor">
             <div className="editor-container">
@@ -120,7 +127,7 @@ const NanoEditor = ({ initialCode = '', onRun, currentLine = 10 }) => {
             </div>
         </div>
     );
-};
+});
 
 export default NanoEditor;
 

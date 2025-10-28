@@ -4,7 +4,10 @@
 /node_modules
 /.pnp
 .pnp.js
-
+CLAUDE.md
+REACT_CONVERSION.md
+REACT_ISSUES_RESOLVED.md
+STATE_MANAGEMENT.md
 # testing
 /coverage
 

@@ -25,6 +25,7 @@ export class Interpreter {
 
     async executeLine(line: any): Promise<any> {
         // Debug before executing line
+        console.log('Executing line with span:', line.span, 'AST line:', line.span?.start?.line);
         await this.dbg.before({
             node: line,
             nodeDepth: this.nodeDepth,
@@ -33,6 +34,7 @@ export class Interpreter {
 
         // Check if debugger paused during the before() call
         if (this.dbg.isPaused()) {
+            console.log('Debugger paused during executeLine - returning early');
             // Return without executing the line - it will be executed on resume
             return {
                 output: this.output,
@@ -101,15 +103,23 @@ export class Interpreter {
         }
 
         this.isExecuting = true;
+        
+        // Start debugger execution tracking
+        console.log('Starting debugger execution');
+        this.dbg.startExecution();
+        
         const { body } = this.currentAst!;
 
         // Continue execution from where we left off
         for (let i = this.currentLineIndex; i < body.length; i++) {
             this.currentLineIndex = i;
+            console.log('Main loop executing line', i, 'isPaused before:', this.dbg.isPaused());
             await this.executeLine(body[i]);
             
+            console.log('Main loop after executeLine, isPaused:', this.dbg.isPaused());
             // Check if debugger is paused and return partial results
             if (this.dbg.isPaused()) {
+                console.log('MAIN LOOP DETECTED PAUSE - stopping execution');
                 this.output += `<br/><em>Execution paused. Click Continue or Step to proceed.</em><br/>\n`;
                 // DON'T increment currentLineIndex - we want to re-execute this line on resume
                 return {
@@ -138,14 +148,47 @@ export class Interpreter {
             throw new Error("No execution to resume");
         }
         
-        // Clear the pause state and continue
-        this.dbg.resume();
+        console.log('Interpreter.resume() called - current line index:', this.currentLineIndex);
         
         // Remove the pause message from output
         this.output = this.output.replace(/<br\/><em>Execution paused.*?<br\/>\n$/, '');
         
-        // Continue execution - run() will pick up from currentLineIndex
-        return this.run(this.currentAst);
+        // Continue execution from where we left off - DON'T call startExecution again
+        const { body } = this.currentAst!;
+
+        // Move to NEXT line when resuming (we've already paused at current line)
+        // Actually, DON'T skip the line - execute it but skip the pause
+        // The resumeExecution() call should have set skipNextPause = true
+        console.log('Resume: staying at current line index to execute it:', this.currentLineIndex);
+
+        // Continue execution from the next line
+        for (let i = this.currentLineIndex; i < body.length; i++) {
+            this.currentLineIndex = i;
+            console.log('Resume loop executing line', i, 'isPaused before:', this.dbg.isPaused());
+            await this.executeLine(body[i]);
+            
+            console.log('Resume loop after executeLine, isPaused:', this.dbg.isPaused());
+            // Check if debugger is paused and return partial results
+            if (this.dbg.isPaused()) {
+                console.log('RESUME LOOP DETECTED PAUSE - stopping execution');
+                this.output += `<br/><em>Execution paused. Click Continue or Step to proceed.</em><br/>\n`;
+                // DON'T increment currentLineIndex - we want to re-execute this line on next resume
+                return {
+                    output: this.output,
+                    env: this.env
+                };
+            }
+        }
+
+        // Execution completed
+        this.isExecuting = false;
+        this.currentAst = null;
+        this.currentLineIndex = 0;
+        
+        return {
+            output: this.output,
+            env: this.env
+        };
     }
 
     /**
@@ -499,13 +542,20 @@ export default async function interpreter(ast: AST, dbg: Debugger): Promise<any>
     
     // If we have ongoing execution, resume appropriately based on step mode
     if (globalInterpreterInstance.executing) {
+        console.log('Ongoing execution detected, step mode:', dbg.currentStepMode);
         // Check if we're in step mode
         if (dbg.currentStepMode === 'in') {
+            console.log('Calling step()');
             return await globalInterpreterInstance.step();
         } else {
+            console.log('Calling resume()');
             return await globalInterpreterInstance.resume();
         }
     }
+    
+    // Starting new execution - reset debugger state first
+    console.log('Starting new execution');
+    dbg.resetState();
     
     return await globalInterpreterInstance.run(ast);
 }

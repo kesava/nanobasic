@@ -60,9 +60,9 @@
   gap: 1rem;
   padding: 1rem;
 
-  /* Desktop: Two columns */
+  /* Desktop: Two columns with debugger under output */
   grid-template-columns: 1fr 1fr;
-  grid-template-areas: "editor output";
+  grid-template-areas: "editor output" "editor debugger";
 }
 
 .editor-section {
@@ -73,11 +73,23 @@
   grid-area: output;
 }
 
+.debugger-section {
+  grid-area: debugger;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* Mobile responsive: Single column */
 @media (max-width: 768px) {
   .app-main {
     grid-template-columns: 1fr;
-    grid-template-areas: "editor" "output";
+    grid-template-areas: "editor" "output" "debugger";
+  }
+
+  .debugger-section {
+    max-height: 300px;
+    overflow: hidden;
   }
 
   .app-header {
@@ -92,8 +104,14 @@
 /* Tablet breakpoint */
 @media (max-width: 1024px) and (min-width: 769px) {
   .app-main {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "editor output" "editor debugger";
     gap: 0.75rem;
     padding: 0.75rem;
+  }
+
+  .debugger-section {
+    max-height: 250px;
   }
 }
 
