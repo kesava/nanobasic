@@ -1,8 +1,65 @@
 # NanoBasic Debugger Architecture
 
+## TL;DR
+
+**What**: A modern, React-based debugger for the NanoBasic interpreter with breakpoints, step execution, and state inspection.
+
+**Architecture**:
+- **Core**: TypeScript classes (`DebuggerCore`, `BreakpointManager`, `StateManager`) handle execution control
+- **UI**: React component (`DebuggerPanel`) with hooks (`useDebugger`) for state management
+- **Integration**: Clean separation - core logic in `src/interpreter/`, UI in `src/components/`
+
+**Key Files**:
+- `src/interpreter/DebuggerCore.ts` - Main debugging engine
+- `src/components/Debugger/DebuggerPanel.tsx` - React UI component
+- `src/hooks/useDebugger.ts` - React state hook
+- `src/interpreter/Debugger.ts` - Export hub (import from here)
+
+**Usage**:
+```typescript
+import { dbg } from './interpreter/Debugger';
+
+// In your interpreter
+await dbg.before(context);  // Check for breakpoints/pause
+
+// In your React app
+const { debuggerState, callbacks } = useDebugger();
+<DebuggerPanel callbacks={callbacks} {...state} />
+```
+
+**Features**: Step execution (INTO/OVER/OUT), conditional breakpoints, hit counts, event-driven state updates, responsive mobile-first UI, keyboard shortcuts, touch gestures.
+
+**Recent Changes** (Jan 2025): Removed 900+ lines of deprecated vanilla JS UI code. Now 100% React-based.
+
+---
+
 ## Overview
 
 The NanoBasic debugger is a sophisticated, React-based debugging system that provides step-by-step execution, breakpoint management, and runtime inspection capabilities for BASIC programs. It features a modern responsive UI, asynchronous execution control, comprehensive state management, and advanced breakpoint capabilities.
+
+## File Structure
+
+### Core Interpreter Files
+- `src/interpreter/DebuggerCore.ts` - Main debugging engine
+- `src/interpreter/DebuggerStateManager.ts` - State machine and execution state
+- `src/interpreter/BreakpointManager.ts` - Breakpoint management
+- `src/interpreter/DebuggerEvents.ts` - Event system
+- `src/interpreter/DebuggerIntegration.ts` - Wrapper for backward compatibility
+- `src/interpreter/Debugger.ts` - Main export hub (re-exports all components)
+
+### React Components
+- `src/components/Debugger/DebuggerPanel.tsx` - Main UI component
+- `src/components/Debugger/DebuggerPanel.module.css` - Component styles
+- `src/hooks/useDebugger.ts` - React hook for debugger state management
+
+### Type Flow
+```
+DebuggerPanel.tsx (defines types)
+    ↓
+Debugger.ts (re-exports types)
+    ↓
+Application code (imports from Debugger.ts)
+```
 
 ## Current Architecture (React-Based)
 
@@ -95,20 +152,26 @@ const {
 ### 🔄 **Integration Architecture**
 
 #### **DebuggerIntegration** (`src/interpreter/DebuggerIntegration.ts`)
-Bridges the core debugger with UI components.
+Thin wrapper around DebuggerCore that provides a unified API for backward compatibility. All UI functionality has been moved to React components.
+
+**Key responsibilities:**
+- Exposes core debugger methods (`continue()`, `step()`, `addBreakpoint()`, etc.)
+- Maintains backward compatibility for existing code
+- No UI dependencies - purely functional wrapper
 
 ```mermaid
 graph TD
     A[React App] --> B[DebuggerPanel]
     B --> C[useDebugger Hook]
-    C --> D[DebuggerIntegration]
-    D --> E[DebuggerCore]
-    E --> F[DebuggerStateManager]
-    E --> G[BreakpointManager]
-    E --> H[DebuggerEvents]
-    F --> I[State Persistence]
-    G --> J[Breakpoint Storage]
-    H --> K[UI Updates]
+    C --> D[dbg singleton]
+    D --> E[DebuggerIntegration]
+    E --> F[DebuggerCore]
+    F --> G[DebuggerStateManager]
+    F --> H[BreakpointManager]
+    F --> I[DebuggerEvents]
+    G --> J[State Persistence]
+    H --> K[Breakpoint Storage]
+    I --> B[UI Updates via Events]
 ```
 
 ## Control Flow Architecture
@@ -898,6 +961,53 @@ shouldPause() → checks skipNextPause = true → skips pause
 - Lazy state persistence
 
 ## Recent Fixes and Improvements
+
+### **Code Cleanup - Deprecated UI Removal (January 2025)** 🧹
+
+Successfully removed all deprecated vanilla JS/DOM-based UI code and modernized the architecture:
+
+**Files Removed:**
+- `DebuggerInterface.ts`: Completely removed (69 lines of deprecated stubs)
+- `DebuggerUI.ts`: Removed (906+ lines of deprecated vanilla JS UI code)
+
+**Files Simplified:**
+- `DebuggerIntegration.ts`: Reduced from 281 to ~110 lines
+  - Removed all `DebuggerUI` dependencies
+  - Removed `setupIntegration()` with 100+ lines of UI callback setup
+  - Removed DOM manipulation and UI logging methods
+  - Now a clean wrapper around `DebuggerCore`
+
+**Architecture Improvements:**
+- All types now sourced from `DebuggerPanel.tsx` (React component)
+- Clean separation: Core debugger logic vs React UI
+- Backward compatible type aliases maintained
+- Zero deprecated code warnings
+
+**Code Reduction:**
+- Removed 900+ lines of deprecated UI code
+- Removed all CSS-in-JS styles (now in CSS modules)
+- Removed touch gesture handlers (now in React component)
+- Removed keyboard shortcuts (now in React component)
+
+**Result:**
+- 92% code reduction in deprecated files
+- Modern React-only architecture
+- Cleaner, more maintainable codebase
+- All functionality preserved in React components
+
+### **Naming Improvements (January 2025)** 📝
+
+Renamed confusing "Legacy" terminology to more accurate names:
+
+**Changes:**
+- `LegacyStepMode` → `StepModeString` (string-based API: "run", "in", "over", "out")
+- `LegacyStepModeType` → `StepModeStringType`
+- `NewStepMode` → `InternalStepMode` (enum-based internal API)
+
+**Reason:**
+- "Legacy" was misleading - it's the current public API
+- New names clearly indicate purpose (string vs enum)
+- More self-documenting code
 
 ### **Continue Button Fix (October 2025)** 🔧
 

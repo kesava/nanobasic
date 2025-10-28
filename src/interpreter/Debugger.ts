@@ -10,7 +10,6 @@ export {
     PauseReason
 } from './DebuggerCore';
 export { DebuggerWithUI as Debugger, dbg } from './DebuggerIntegration';
-export { DebuggerUI } from './DebuggerUI';
 export type {
     Breakpoint,
     BreakpointCondition,
@@ -18,4 +17,13 @@ export type {
     ExecutionContext,
     StateTransition
 } from './DebuggerCore';
-export type { DebuggerState, DebuggerUICallbacks, DebuggerStats } from './DebuggerUI';
+
+// Re-export types from DebuggerPanel (React component)
+export type {
+    DebuggerState,
+    DebuggerCallbacks,
+    DebuggerStats
+} from '../components/Debugger/DebuggerPanel';
+
+// Backward compatibility alias
+export type { DebuggerCallbacks as DebuggerUICallbacks } from '../components/Debugger/DebuggerPanel';
