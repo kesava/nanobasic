@@ -34,9 +34,7 @@ function App() {
         debuggerState,
         breakpoints,
         stats,
-        isVisible: debuggerVisible,
         callbacks: debuggerCallbacks,
-        setVisible: setDebuggerVisible
     } = useDebugger({
         autoStart: true, // Always show debugger
         onStateChange: (state) => {

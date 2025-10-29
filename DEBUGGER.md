@@ -97,6 +97,93 @@ enum DebuggerState {
 - Event-driven state changes
 - History tracking for debugging
 
+**State Transition Diagram:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE: Initialize
+
+    IDLE --> RUNNING: startExecution()<br/>User clicks Run
+    IDLE --> STEPPING: step()<br/>User clicks Step
+
+    RUNNING --> PAUSED: Breakpoint hit<br/>User pauses
+    RUNNING --> STEPPING: step()<br/>User clicks Step
+    RUNNING --> ERROR: Exception thrown
+    RUNNING --> TERMINATED: Program ends
+    RUNNING --> IDLE: resetState()<br/>User stops
+
+    PAUSED --> RUNNING: continue()<br/>Resume execution
+    PAUSED --> STEPPING: step()<br/>Step one line
+    PAUSED --> TERMINATED: User stops<br/>resetState()
+    PAUSED --> IDLE: resetState()<br/>User resets
+
+    STEPPING --> PAUSED: After executing<br/>one statement
+    STEPPING --> RUNNING: continue()<br/>Resume normal
+    STEPPING --> ERROR: Exception in step
+    STEPPING --> TERMINATED: Program ends
+
+    ERROR --> IDLE: resetState()<br/>User resets
+    ERROR --> TERMINATED: stopExecution()
+
+    TERMINATED --> IDLE: resetState()<br/>Ready for next run
+
+    note right of IDLE
+        Ready to start
+        No execution
+    end note
+
+    note right of RUNNING
+        Normal execution
+        skipNextPause flag managed here
+    end note
+
+    note right of PAUSED
+        Stopped at breakpoint
+        or user request
+        Awaiting user action
+    end note
+
+    note right of STEPPING
+        Single-step mode
+        Will pause after
+        each statement
+    end note
+
+    note right of ERROR
+        Exception occurred
+        Can reset or terminate
+    end note
+
+    note right of TERMINATED
+        Program finished
+        Can only reset
+    end note
+```
+
+**Valid State Transitions:**
+```typescript
+const STATE_TRANSITIONS = {
+    IDLE: ['RUNNING', 'STEPPING'],
+    RUNNING: ['PAUSED', 'STEPPING', 'ERROR', 'TERMINATED', 'IDLE'],
+    PAUSED: ['RUNNING', 'STEPPING', 'TERMINATED', 'IDLE'],
+    STEPPING: ['PAUSED', 'RUNNING', 'ERROR', 'TERMINATED'],
+    ERROR: ['IDLE', 'TERMINATED'],
+    TERMINATED: ['IDLE']
+};
+```
+
+**Key State Behaviors:**
+- **IDLE**: Initial state, waiting to start execution
+- **RUNNING**: Normal execution, checks breakpoints between statements
+- **PAUSED**: Execution halted, user can inspect state or continue
+- **STEPPING**: Executes one statement then transitions to PAUSED
+- **ERROR**: Exception occurred, debugging information preserved
+- **TERMINATED**: Execution completed, can only reset to IDLE
+
+**Special Flags:**
+- `skipNextPause`: Set during `continue()` to skip immediate re-break on same line
+- `stepMode`: Tracks step type (INTO, OVER, OUT) for different stepping behaviors
+
 #### 3. **BreakpointManager** (`src/interpreter/BreakpointManager.ts`)
 Advanced breakpoint management system.
 
